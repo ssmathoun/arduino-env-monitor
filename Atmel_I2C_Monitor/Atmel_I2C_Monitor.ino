@@ -8,6 +8,9 @@
 DHT dht(DHTPIN, DHTTYPE); 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
+unsigned long previousMillis = 0; // Stores the last time the sensor was updated.
+const long interval = 2000; // Interval at which to read sensor data (2000 milliseconds).
+
 void setup() {
   Serial.begin(9600); // Opens the USB connection to my device at 9600 bits per second.
 
@@ -19,25 +22,30 @@ void setup() {
 }
 
 void loop() {
-  delay(2000);
+  unsigned long currentMillis = millis(); // Get the current time
 
-  float humidity = dht.readHumidity();
-  float tempC = dht.readTemperature(); // Reads temperature in Celsius.
+  // Check if 2 seconds have passed
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
 
-  // Sends humidity and temperature to Computer's Serial Monitor.
-  Serial.print(F("Humidity: "));
-  Serial.println(humidity);
+    float humidity = dht.readHumidity();
+    float tempC = dht.readTemperature(); // Reads temperature in Celsius.
 
-  Serial.print(F("Temp(C): "));
-  Serial.println(tempC);
+    // Sends humidity and temperature to Computer's Serial Monitor.
+    Serial.print(F("Humidity: "));
+    Serial.println(humidity);
 
-  // Sends humidity and temperature to physical LCD Screen.
-  lcd.setCursor(0,0); // Move cursor to Column 0, Row 0 in first row and top-left
-  lcd.print("Temp(C): ");
-  lcd.print(tempC);
+    Serial.print(F("Temp(C): "));
+    Serial.println(tempC);
 
-  lcd.setCursor(0,1); // Move cursor to Column 0, Row 1 in second row and bottom-left.
-  lcd.print("Hum: ");
-  lcd.print(humidity);
+    // Sends humidity and temperature to physical LCD Screen.
+    lcd.setCursor(0,0); // Move cursor to Column 0, Row 0 in first row and top-left
+    lcd.print("Temp(C): ");
+    lcd.print(tempC);
+
+    lcd.setCursor(0,1); // Move cursor to Column 0, Row 1 in second row and bottom-left.
+    lcd.print("Hum: ");
+    lcd.print(humidity);
+  }
 
 }
