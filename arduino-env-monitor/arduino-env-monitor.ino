@@ -4,6 +4,9 @@
 #define DHTPIN 2
 #define DHTTYPE DHT11
 
+#define TRIG_PIN A0
+#define ECHO_PIN A1
+
 DHT dht(DHTPIN, DHTTYPE);
 
 // The 8-Bit Parallel Constructor
@@ -15,7 +18,12 @@ const long interval = 2000; // Interval at which to read sensor data (2000 milli
 
 void setup() {
   Serial.begin(9600); // Opens the USB connection to my device at 9600 bits per second.
-  dht.begin(); // Wakes up sensor
+  dht.begin(); // Wakes up Temp/Humidity DHT 11 sensor
+
+  // Initilize Ultrasonic Pins
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
   lcd.begin(16, 2); // Initializes the 16x2 screen in 8-bit mode
 
 }
@@ -27,24 +35,57 @@ void loop() {
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
 
+    // Fires Ultrasonic Pulse
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10); // 10 microsecond trigger pulse
+    digitalWrite(TRIG_PIN, LOW);
+
+    // Read the Echo
+    long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+    int distance;
+
+    if (duration == 0) {
+      distance = -1; // -1 means timeout/out of range
+    }
+    else {
+      distance = duration * 0.0343 / 2; // Convert time to centimeters
+    }
+
+    // Read DHT11
     float humidity = dht.readHumidity();
     float tempC = dht.readTemperature(); // Reads temperature in Celsius.
 
-    // Sends humidity and temperature to Computer's Serial Monitor.
+    // Sends sensor data to Computer's Serial Monitor.
     Serial.print(F("Humidity: "));
     Serial.println(humidity);
 
     Serial.print(F("Temp(C): "));
     Serial.println(tempC);
 
-    // Sends humidity and temperature to physical LCD Screen.
-    lcd.setCursor(0,0); // Move cursor to Column 0, Row 0 in first row and top-left
-    lcd.print("Temp(C): ");
-    lcd.print(tempC, 1); // 1 for 1 decimal place
+    Serial.print(F("Distance(cm): "));
+    Serial.println(distance);
 
-    lcd.setCursor(0,1); // Move cursor to Column 0, Row 1 in second row and bottom-left.
-    lcd.print("Hum: ");
-    lcd.print(humidity, 1); // 1 for 1 decimal place
+    // Send to Physical LCD Screen
+    lcd.clear(); // Clear old data to prevent overlapping ghost characters
+
+    // Row 0 (Top): Temp and Humidity combined
+    lcd.setCursor(0,0); 
+    lcd.print("T:");
+    lcd.print(tempC, 1); 
+    lcd.print("C H:");
+    lcd.print(humidity, 1); 
+    lcd.print("%");
+
+    // Row 1 (Bottom): Distance
+    lcd.setCursor(0,1); 
+    lcd.print("Dist: ");
+    if (distance == -1) {
+      lcd.print("MAX RANGE");
+    } else {
+      lcd.print(distance);
+      lcd.print(" cm");
+    }
   }
-
 }
